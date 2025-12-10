@@ -56,7 +56,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Mobile menu button */}
       <Button
         variant="ghost"
@@ -79,11 +79,13 @@ export default function Home() {
       />
 
       {/* Main chat view */}
-      <ChatView
-        conversationId={currentConversationId}
-        onUpdateConversationName={updateConversationName}
-        onNewConversation={createNewConversation}
-      />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <ChatView
+          conversationId={currentConversationId}
+          onUpdateConversationName={updateConversationName}
+          onNewConversation={createNewConversation}
+        />
+      </div>
     </div>
   )
 }

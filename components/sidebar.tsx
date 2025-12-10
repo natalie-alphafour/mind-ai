@@ -38,7 +38,7 @@ export function Sidebar({
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed lg:relative inset-y-0 left-0 z-40 w-72 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform lg:translate-x-0",
+          "fixed lg:relative inset-y-0 left-0 z-40 w-72 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform lg:translate-x-0 h-full overflow-hidden",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
