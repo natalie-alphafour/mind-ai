@@ -49,7 +49,7 @@ export function EmptyState({ onNewConversation }: EmptyStateProps) {
         </div>
 
         {/* Example questions */}
-        <div className="space-y-3">
+        {/* <div className="space-y-3">
           <p className="text-sm font-medium text-muted-foreground">Try asking:</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {examples.map((example, idx) => (
@@ -63,7 +63,7 @@ export function EmptyState({ onNewConversation }: EmptyStateProps) {
               </Button>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* CTA */}
         <div className="text-center">
