@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node test-assistant.js:*)",
+      "WebFetch(domain:sdk.pinecone.io)",
+      "Bash(pnpm add:*)",
+      "WebFetch(domain:docs.pinecone.io)",
+      "Bash(pnpm dev)",
+      "Bash(taskkill /F /PID 29444)",
+      "Bash(taskkill //F //PID 29444)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
