@@ -4,14 +4,17 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Settings, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface RightSidebarProps {
   temperature: number
   systemPrompt: string
+  comparisonMode: boolean
   onTemperatureChange: (value: number) => void
   onSystemPromptChange: (value: string) => void
+  onComparisonModeChange: (value: boolean) => void
   onUpdateInstructions: () => void
   isOpen: boolean
   onClose: () => void
@@ -20,8 +23,10 @@ interface RightSidebarProps {
 export function RightSidebar({
   temperature,
   systemPrompt,
+  comparisonMode,
   onTemperatureChange,
   onSystemPromptChange,
+  onComparisonModeChange,
   onUpdateInstructions,
   isOpen,
   onClose,
@@ -95,6 +100,25 @@ export function RightSidebar({
             </Button>
             <p className="text-xs text-muted-foreground">
               These instructions will guide the assistant's behavior and responses for all future messages.
+            </p>
+          </div>
+
+          <div className="border-t border-sidebar-border" />
+
+          {/* Comparison Mode */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="comparisonMode" className="text-sm font-medium">
+                  Comparison Mode
+                </Label>
+                <p className="text-xs text-muted-foreground">Compare RAG Assistant with GPT-5</p>
+              </div>
+              <Switch id="comparisonMode" checked={comparisonMode} onCheckedChange={onComparisonModeChange} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              When enabled, responses from both RAG Assistant and GPT-5 will be displayed side-by-side for
+              comparison.
             </p>
           </div>
 

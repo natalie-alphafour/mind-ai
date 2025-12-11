@@ -8,12 +8,22 @@ import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Send, Sparkles } from "lucide-react"
 import { MessageBubble } from "@/components/message-bubble"
+import { ComparisonMessageBubble } from "@/components/comparison-message-bubble"
 import { EmptyState } from "@/components/empty-state"
 
 interface Message {
   id: string
   role: "user" | "assistant"
   content: string
+  citations?: Citation[]
+  isThinking?: boolean
+}
+
+interface ComparisonMessage {
+  id: string
+  role: "user" | "assistant"
+  ragContent?: string
+  gptContent?: string
   citations?: Citation[]
   isThinking?: boolean
 }
@@ -31,10 +41,12 @@ interface ChatViewProps {
   onUpdateConversationName: (id: string, name: string) => void
   onNewConversation: () => void
   temperature: number
+  comparisonMode: boolean
 }
 
-export function ChatView({ conversationId, onUpdateConversationName, onNewConversation, temperature }: ChatViewProps) {
+export function ChatView({ conversationId, onUpdateConversationName, onNewConversation, temperature, comparisonMode }: ChatViewProps) {
   const [messages, setMessages] = useState<Message[]>([])
+  const [comparisonMessages, setComparisonMessages] = useState<ComparisonMessage[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -43,6 +55,8 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
     if (conversationId) {
       // Load messages for current conversation
       const stored = localStorage.getItem(`messages_${conversationId}`)
+      const storedComparison = localStorage.getItem(`comparison_messages_${conversationId}`)
+
       if (stored) {
         const loadedMessages = JSON.parse(stored)
         // Remove isThinking property from all loaded messages since saved messages should never be in thinking state
@@ -54,6 +68,17 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
       } else {
         setMessages([])
       }
+
+      if (storedComparison) {
+        const loadedComparisonMessages = JSON.parse(storedComparison)
+        const cleanedComparisonMessages = loadedComparisonMessages.map((msg: ComparisonMessage) => {
+          const { isThinking, ...rest } = msg
+          return rest
+        })
+        setComparisonMessages(cleanedComparisonMessages)
+      } else {
+        setComparisonMessages([])
+      }
     }
   }, [conversationId])
 
@@ -62,9 +87,171 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [messages])
+  }, [messages, comparisonMessages])
+
+  const handleComparisonSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!input.trim() || isLoading) return
+
+    if (!conversationId) {
+      onNewConversation()
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      return
+    }
+
+    const userMessage: ComparisonMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      ragContent: input.trim(),
+      gptContent: input.trim(),
+    }
+
+    const updatedMessages = [...comparisonMessages, userMessage]
+    setComparisonMessages(updatedMessages)
+    setInput("")
+    setIsLoading(true)
+
+    if (comparisonMessages.length === 0) {
+      onUpdateConversationName(conversationId, input.trim().slice(0, 50) + (input.trim().length > 50 ? "..." : ""))
+    }
+
+    const assistantMessageId = (Date.now() + 1).toString()
+    const assistantMessage: ComparisonMessage = {
+      id: assistantMessageId,
+      role: "assistant",
+      ragContent: "",
+      gptContent: "",
+      citations: [],
+      isThinking: true,
+    }
+
+    const messagesWithPlaceholder = [...updatedMessages, assistantMessage]
+    setComparisonMessages(messagesWithPlaceholder)
+
+    try {
+      // Convert comparison messages to regular format for API
+      const apiMessages = comparisonMessages.map((msg) => ({
+        role: msg.role,
+        content: msg.ragContent || msg.gptContent || "",
+      }))
+      apiMessages.push({ role: "user", content: input.trim() })
+
+      const response = await fetch("/api/chat-comparison", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: apiMessages,
+          conversationId,
+          temperature,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to get response")
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error("Response body is not readable")
+      }
+
+      let ragContent = ""
+      let gptContent = ""
+      let finalCitations: Citation[] = []
+      let citationMarkers: Array<{ position: number; number: number }> = []
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        const lines = chunk.split("\n")
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6))
+
+              if (data.type === "start") {
+                setComparisonMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, ragContent: "", gptContent: "", isThinking: true }
+                      : msg,
+                  ),
+                )
+              } else if (data.type === "rag_content") {
+                ragContent += data.content
+                setComparisonMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId ? { ...msg, ragContent, isThinking: false } : msg,
+                  ),
+                )
+              } else if (data.type === "rag_citation_marker") {
+                citationMarkers.push({ position: data.position, number: data.number })
+              } else if (data.type === "gpt_content") {
+                gptContent += data.content
+                setComparisonMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId ? { ...msg, gptContent, isThinking: false } : msg,
+                  ),
+                )
+              } else if (data.type === "citations") {
+                finalCitations = data.citations
+              } else if (data.type === "done") {
+                // Insert citation markers into RAG content
+                let finalRagContent = ragContent
+                citationMarkers.reverse().forEach(({ position, number }) => {
+                  finalRagContent = finalRagContent.slice(0, position) + `[${number}]` + finalRagContent.slice(position)
+                })
+
+                setComparisonMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, ragContent: finalRagContent, gptContent, citations: finalCitations }
+                      : msg,
+                  ),
+                )
+
+                const finalMessages = messagesWithPlaceholder.map((msg) => {
+                  const updated =
+                    msg.id === assistantMessageId
+                      ? { ...msg, ragContent: finalRagContent, gptContent, citations: finalCitations }
+                      : msg
+                  const { isThinking, ...cleaned } = updated
+                  return cleaned
+                })
+                localStorage.setItem(`comparison_messages_${conversationId}`, JSON.stringify(finalMessages))
+              } else if (data.type === "error") {
+                throw new Error(data.error)
+              }
+            } catch (parseError) {
+              console.error("Failed to parse comparison SSE data:", line, parseError)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error in comparison mode:", error)
+      const errorMessage: ComparisonMessage = {
+        id: assistantMessageId,
+        role: "assistant",
+        ragContent: "Sorry, I encountered an error with the RAG assistant.",
+        gptContent: "Sorry, I encountered an error with GPT-5.",
+      }
+      setComparisonMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? errorMessage : msg)))
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
+    if (comparisonMode) {
+      return handleComparisonSubmit(e)
+    }
     e.preventDefault()
 
     if (!input.trim() || isLoading) return
@@ -262,11 +449,21 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
       {/* Messages area */}
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full px-4 lg:px-8">
-          <div className="max-w-3xl mx-auto py-8 space-y-6">
-          {messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
-          ))}
-          {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+          <div className={comparisonMode ? "max-w-7xl mx-auto py-8 space-y-6" : "max-w-3xl mx-auto py-8 space-y-6"}>
+          {comparisonMode ? (
+            <>
+              {comparisonMessages.map((message) => (
+                <ComparisonMessageBubble key={message.id} message={message} />
+              ))}
+            </>
+          ) : (
+            <>
+              {messages.map((message) => (
+                <MessageBubble key={message.id} message={message} />
+              ))}
+            </>
+          )}
+          {isLoading && (comparisonMode ? comparisonMessages[comparisonMessages.length - 1]?.role !== "assistant" : messages[messages.length - 1]?.role !== "assistant") && (
             <div className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
                 <Sparkles className="h-4 w-4 text-primary-foreground animate-pulse" />

@@ -18,15 +18,31 @@ export async function POST(req: NextRequest) {
     // Initialize Pinecone client
     const pc = new Pinecone({ apiKey })
 
+    const instructionsTrimmed = instructions?.trim() || ""
+    
     console.log("[v0] Updating assistant instructions:", assistantName)
+    console.log("[v0] Instructions value:", instructionsTrimmed === "" ? "(empty - resetting to minimal)" : instructionsTrimmed)
 
-    // Update assistant instructions
+    // Pinecone API requires at least one field with a value to be updated
+    // When instructions is empty, we'll use a minimal placeholder value
+    // that effectively means "no custom instructions"
+    // Using a single space as it's the minimal valid value
+    const instructionsToUpdate = instructionsTrimmed === "" ? " " : instructionsTrimmed
+
+    // Update assistant instructions with the provided value (or minimal placeholder for reset)
     await pc.updateAssistant(assistantName, {
-      instructions,
+      instructions: instructionsToUpdate,
     })
-
-    console.log("[v0] Assistant instructions updated successfully")
-
+    
+    if (instructionsTrimmed === "") {
+      console.log("[v0] Instructions reset successfully (set to minimal value)")
+      return NextResponse.json({
+        success: true,
+        message: "Assistant instructions reset successfully",
+      })
+    }
+    
+    console.log("[v0] Instructions updated successfully")
     return NextResponse.json({
       success: true,
       message: "Assistant instructions updated successfully",

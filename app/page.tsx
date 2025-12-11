@@ -21,6 +21,7 @@ export default function Home() {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
   const [temperature, setTemperature] = useState(0.7)
   const [systemPrompt, setSystemPrompt] = useState("")
+  const [comparisonMode, setComparisonMode] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -66,22 +67,26 @@ export default function Home() {
       const response = await fetch("/api/assistant/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instructions: systemPrompt }),
+        body: JSON.stringify({ instructions: systemPrompt || "" }),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to update instructions")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to update instructions")
       }
 
+      const data = await response.json()
       toast({
         title: "Success",
-        description: "Assistant instructions updated successfully",
+        description: systemPrompt.trim() === "" 
+          ? "Assistant instructions reset successfully" 
+          : "Assistant instructions updated successfully",
       })
     } catch (error) {
       console.error("Error updating instructions:", error)
       toast({
         title: "Error",
-        description: "Failed to update assistant instructions",
+        description: error instanceof Error ? error.message : "Failed to update assistant instructions",
         variant: "destructive",
       })
     }
@@ -127,6 +132,7 @@ export default function Home() {
           onUpdateConversationName={updateConversationName}
           onNewConversation={createNewConversation}
           temperature={temperature}
+          comparisonMode={comparisonMode}
         />
       </div>
 
@@ -134,8 +140,10 @@ export default function Home() {
       <RightSidebar
         temperature={temperature}
         systemPrompt={systemPrompt}
+        comparisonMode={comparisonMode}
         onTemperatureChange={setTemperature}
         onSystemPromptChange={setSystemPrompt}
+        onComparisonModeChange={setComparisonMode}
         onUpdateInstructions={handleUpdateInstructions}
         isOpen={rightSidebarOpen}
         onClose={() => setRightSidebarOpen(false)}
