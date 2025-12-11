@@ -30,6 +30,7 @@ export function Sidebar({
   isOpen,
   onClose,
 }: SidebarProps) {
+
   return (
     <>
       {/* Overlay for mobile */}

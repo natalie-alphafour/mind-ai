@@ -8,7 +8,7 @@ interface Message {
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, conversationId } = await req.json()
+    const { messages, conversationId, temperature } = await req.json()
 
     const apiKey = process.env.PINECONE_API_KEY
     const assistantName = process.env.PINECONE_ASSISTANT_NAME
@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
           role: msg.role,
           content: msg.content,
         })),
+        temperature: temperature !== undefined ? temperature : undefined,
       })
     } catch (streamError) {
       console.log("[v0] chatStream not available, using regular chat:", streamError)
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
           role: msg.role,
           content: msg.content,
         })),
+        temperature: temperature !== undefined ? temperature : undefined,
       })
 
       // Process non-streaming response

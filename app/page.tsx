@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/sidebar"
+import { RightSidebar } from "@/components/right-sidebar"
 import { ChatView } from "@/components/chat-view"
 import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
+import { Menu, Settings } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface Conversation {
   id: string
@@ -16,6 +18,10 @@ export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
+  const [temperature, setTemperature] = useState(0.7)
+  const [systemPrompt, setSystemPrompt] = useState("")
+  const { toast } = useToast()
 
   useEffect(() => {
     // Load conversations from localStorage
@@ -55,6 +61,32 @@ export default function Home() {
     localStorage.setItem("conversations", JSON.stringify(updated))
   }
 
+  const handleUpdateInstructions = async () => {
+    try {
+      const response = await fetch("/api/assistant/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instructions: systemPrompt }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update instructions")
+      }
+
+      toast({
+        title: "Success",
+        description: "Assistant instructions updated successfully",
+      })
+    } catch (error) {
+      console.error("Error updating instructions:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update assistant instructions",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Mobile menu button */}
@@ -67,7 +99,17 @@ export default function Home() {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Sidebar */}
+      {/* Mobile settings button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed top-4 right-4 z-50 lg:hidden"
+        onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+      >
+        <Settings className="h-5 w-5" />
+      </Button>
+
+      {/* Left Sidebar */}
       <Sidebar
         conversations={conversations}
         currentConversationId={currentConversationId}
@@ -84,8 +126,20 @@ export default function Home() {
           conversationId={currentConversationId}
           onUpdateConversationName={updateConversationName}
           onNewConversation={createNewConversation}
+          temperature={temperature}
         />
       </div>
+
+      {/* Right Sidebar */}
+      <RightSidebar
+        temperature={temperature}
+        systemPrompt={systemPrompt}
+        onTemperatureChange={setTemperature}
+        onSystemPromptChange={setSystemPrompt}
+        onUpdateInstructions={handleUpdateInstructions}
+        isOpen={rightSidebarOpen}
+        onClose={() => setRightSidebarOpen(false)}
+      />
     </div>
   )
 }

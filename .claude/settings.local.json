@@ -7,7 +7,10 @@
       "WebFetch(domain:docs.pinecone.io)",
       "Bash(pnpm dev)",
       "Bash(taskkill /F /PID 29444)",
-      "Bash(taskkill //F //PID 29444)"
+      "Bash(taskkill //F //PID 29444)",
+      "WebSearch",
+      "Bash(pnpm tsc:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

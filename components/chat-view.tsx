@@ -30,9 +30,10 @@ interface ChatViewProps {
   conversationId: string | null
   onUpdateConversationName: (id: string, name: string) => void
   onNewConversation: () => void
+  temperature: number
 }
 
-export function ChatView({ conversationId, onUpdateConversationName, onNewConversation }: ChatViewProps) {
+export function ChatView({ conversationId, onUpdateConversationName, onNewConversation, temperature }: ChatViewProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -43,7 +44,13 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
       // Load messages for current conversation
       const stored = localStorage.getItem(`messages_${conversationId}`)
       if (stored) {
-        setMessages(JSON.parse(stored))
+        const loadedMessages = JSON.parse(stored)
+        // Remove isThinking property from all loaded messages since saved messages should never be in thinking state
+        const cleanedMessages = loadedMessages.map((msg: Message) => {
+          const { isThinking, ...rest } = msg
+          return rest
+        })
+        setMessages(cleanedMessages)
       } else {
         setMessages([])
       }
@@ -106,6 +113,7 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
         body: JSON.stringify({
           messages: updatedMessages,
           conversationId,
+          temperature,
         }),
       })
 
@@ -191,10 +199,14 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
                   ),
                 )
 
-                // Save to localStorage
-                const finalMessages = messagesWithPlaceholder.map((msg) =>
-                  msg.id === assistantMessageId ? { ...msg, content: finalContent, citations: finalCitations } : msg,
-                )
+                // Save to localStorage (remove isThinking from all messages before saving)
+                const finalMessages = messagesWithPlaceholder.map((msg) => {
+                  const updated = msg.id === assistantMessageId 
+                    ? { ...msg, content: finalContent, citations: finalCitations } 
+                    : msg
+                  const { isThinking, ...cleaned } = updated
+                  return cleaned
+                })
                 localStorage.setItem(`messages_${conversationId}`, JSON.stringify(finalMessages))
                 } else if (data.type === "error") {
                   throw new Error(data.error)
@@ -217,10 +229,14 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
           ),
         )
 
-        // Save to localStorage
-        const finalMessages = messagesWithPlaceholder.map((msg) =>
-          msg.id === assistantMessageId ? { ...msg, content: data.content, citations: data.citations } : msg,
-        )
+        // Save to localStorage (remove isThinking from all messages before saving)
+        const finalMessages = messagesWithPlaceholder.map((msg) => {
+          const updated = msg.id === assistantMessageId 
+            ? { ...msg, content: data.content, citations: data.citations } 
+            : msg
+          const { isThinking, ...cleaned } = updated
+          return cleaned
+        })
         localStorage.setItem(`messages_${conversationId}`, JSON.stringify(finalMessages))
       }
     } catch (error) {
