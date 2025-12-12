@@ -10,6 +10,7 @@ import { Send, Sparkles } from "lucide-react"
 import { MessageBubble } from "@/components/message-bubble"
 import { ComparisonMessageBubble } from "@/components/comparison-message-bubble"
 import { EmptyState } from "@/components/empty-state"
+import type { ChatModel } from "@/components/right-sidebar"
 
 interface Message {
   id: string
@@ -42,9 +43,10 @@ interface ChatViewProps {
   onNewConversation: () => void
   temperature: number
   comparisonMode: boolean
+  model: ChatModel
 }
 
-export function ChatView({ conversationId, onUpdateConversationName, onNewConversation, temperature, comparisonMode }: ChatViewProps) {
+export function ChatView({ conversationId, onUpdateConversationName, onNewConversation, temperature, comparisonMode, model }: ChatViewProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [comparisonMessages, setComparisonMessages] = useState<ComparisonMessage[]>([])
   const [input, setInput] = useState("")
@@ -144,6 +146,7 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
           messages: apiMessages,
           conversationId,
           temperature,
+          model,
         }),
       })
 
@@ -301,6 +304,7 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
           messages: updatedMessages,
           conversationId,
           temperature,
+          model,
         }),
       })
 

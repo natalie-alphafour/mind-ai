@@ -7,7 +7,7 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, conversationId, temperature } = await request.json()
+    const { messages, conversationId, temperature, model } = await request.json()
 
     // Create a transform stream
     const encoder = new TextEncoder()
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
               const ragResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messages, conversationId, temperature }),
+                body: JSON.stringify({ messages, conversationId, temperature, model }),
               })
 
               if (ragResponse.headers.get("content-type")?.includes("text/event-stream")) {

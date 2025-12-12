@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/sidebar"
-import { RightSidebar } from "@/components/right-sidebar"
+import { RightSidebar, type ChatModel } from "@/components/right-sidebar"
 import { ChatView } from "@/components/chat-view"
 import { Button } from "@/components/ui/button"
 import { Menu, Settings } from "lucide-react"
@@ -22,6 +22,7 @@ export default function Home() {
   const [temperature, setTemperature] = useState(0.7)
   const [systemPrompt, setSystemPrompt] = useState("")
   const [comparisonMode, setComparisonMode] = useState(false)
+  const [model, setModel] = useState<ChatModel>("gpt-4o")
   const { toast } = useToast()
 
   useEffect(() => {
@@ -133,6 +134,7 @@ export default function Home() {
           onNewConversation={createNewConversation}
           temperature={temperature}
           comparisonMode={comparisonMode}
+          model={model}
         />
       </div>
 
@@ -141,9 +143,11 @@ export default function Home() {
         temperature={temperature}
         systemPrompt={systemPrompt}
         comparisonMode={comparisonMode}
+        model={model}
         onTemperatureChange={setTemperature}
         onSystemPromptChange={setSystemPrompt}
         onComparisonModeChange={setComparisonMode}
+        onModelChange={setModel}
         onUpdateInstructions={handleUpdateInstructions}
         isOpen={rightSidebarOpen}
         onClose={() => setRightSidebarOpen(false)}

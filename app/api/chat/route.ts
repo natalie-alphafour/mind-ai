@@ -8,7 +8,7 @@ interface Message {
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, conversationId, temperature } = await req.json()
+    const { messages, conversationId, temperature, model } = await req.json()
 
     const apiKey = process.env.PINECONE_API_KEY
     const assistantName = process.env.PINECONE_ASSISTANT_NAME
@@ -29,23 +29,37 @@ export async function POST(req: NextRequest) {
     // Try streaming, fallback to non-streaming if not available
     let streamResponse
     try {
-      streamResponse = await assistant.chatStream({
+      const chatOptions: any = {
         messages: messages.map((msg: Message) => ({
           role: msg.role,
           content: msg.content,
         })),
         temperature: temperature !== undefined ? temperature : undefined,
-      })
+      }
+      
+      // Add model if provided
+      if (model) {
+        chatOptions.model = model
+      }
+      
+      streamResponse = await assistant.chatStream(chatOptions)
     } catch (streamError) {
       console.log("[v0] chatStream not available, using regular chat:", streamError)
       // Fallback to regular chat
-      const response = await assistant.chat({
+      const chatOptions: any = {
         messages: messages.map((msg: Message) => ({
           role: msg.role,
           content: msg.content,
         })),
         temperature: temperature !== undefined ? temperature : undefined,
-      })
+      }
+      
+      // Add model if provided
+      if (model) {
+        chatOptions.model = model
+      }
+      
+      const response = await assistant.chat(chatOptions)
 
       // Process non-streaming response
       let content = response.message?.content || "No response received"
