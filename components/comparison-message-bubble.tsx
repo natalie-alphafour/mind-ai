@@ -70,10 +70,48 @@ export function ComparisonMessageBubble({ message }: ComparisonMessageBubbleProp
           </CardHeader>
           <CardContent className="pt-0">
             {message.isThinking && !message.ragContent ? (
-              <div className="space-y-2">
-                <div className="h-3 bg-muted rounded animate-pulse w-full" style={{ animationDuration: "1.5s" }} />
-                <div className="h-3 bg-muted rounded animate-pulse w-3/4" style={{ animationDuration: "1.5s", animationDelay: "0.2s" }} />
-                <div className="h-3 bg-muted rounded animate-pulse w-5/6" style={{ animationDuration: "1.5s", animationDelay: "0.4s" }} />
+              <div className="relative">
+                {/* Shimmer effect */}
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent dark:via-white/5"
+                  style={{
+                    animation: "thinking-shimmer 3s cubic-bezier(0.4, 0, 0.2, 1) infinite"
+                  }}
+                />
+
+                <div className="flex items-center gap-3 text-muted-foreground relative z-10">
+                  <span
+                    className="text-sm font-medium"
+                    style={{
+                      animation: "thinking-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite"
+                    }}
+                  >
+                    Thinking
+                  </span>
+                  <div className="flex gap-1.5 items-center">
+                    <span
+                      className="inline-block w-2 h-2 rounded-full bg-current relative"
+                      style={{
+                        animation: "thinking-typewriter 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                        animationDelay: "0ms"
+                      }}
+                    />
+                    <span
+                      className="inline-block w-2 h-2 rounded-full bg-current relative"
+                      style={{
+                        animation: "thinking-typewriter 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                        animationDelay: "0.08s"
+                      }}
+                    />
+                    <span
+                      className="inline-block w-2 h-2 rounded-full bg-current relative"
+                      style={{
+                        animation: "thinking-typewriter 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                        animationDelay: "0.16s"
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="text-sm leading-relaxed whitespace-pre-wrap text-card-foreground">
@@ -121,10 +159,48 @@ export function ComparisonMessageBubble({ message }: ComparisonMessageBubbleProp
           </CardHeader>
           <CardContent className="pt-0">
             {message.isThinking && !message.gptContent ? (
-              <div className="space-y-2">
-                <div className="h-3 bg-muted rounded animate-pulse w-full" style={{ animationDuration: "1.5s" }} />
-                <div className="h-3 bg-muted rounded animate-pulse w-4/5" style={{ animationDuration: "1.5s", animationDelay: "0.2s" }} />
-                <div className="h-3 bg-muted rounded animate-pulse w-full" style={{ animationDuration: "1.5s", animationDelay: "0.4s" }} />
+              <div className="relative">
+                {/* Shimmer effect */}
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent dark:via-white/5"
+                  style={{
+                    animation: "thinking-shimmer 3s cubic-bezier(0.4, 0, 0.2, 1) infinite"
+                  }}
+                />
+
+                <div className="flex items-center gap-3 text-muted-foreground relative z-10">
+                  <span
+                    className="text-sm font-medium"
+                    style={{
+                      animation: "thinking-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite"
+                    }}
+                  >
+                    Thinking
+                  </span>
+                  <div className="flex gap-1.5 items-center">
+                    <span
+                      className="inline-block w-2 h-2 rounded-full bg-current relative"
+                      style={{
+                        animation: "thinking-typewriter 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                        animationDelay: "0ms"
+                      }}
+                    />
+                    <span
+                      className="inline-block w-2 h-2 rounded-full bg-current relative"
+                      style={{
+                        animation: "thinking-typewriter 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                        animationDelay: "0.08s"
+                      }}
+                    />
+                    <span
+                      className="inline-block w-2 h-2 rounded-full bg-current relative"
+                      style={{
+                        animation: "thinking-typewriter 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                        animationDelay: "0.16s"
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="text-sm leading-relaxed whitespace-pre-wrap text-card-foreground">

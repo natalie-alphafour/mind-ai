@@ -10,7 +10,7 @@ import { Send, Sparkles } from "lucide-react"
 import { MessageBubble } from "@/components/message-bubble"
 import { ComparisonMessageBubble } from "@/components/comparison-message-bubble"
 import { EmptyState } from "@/components/empty-state"
-import type { ChatModel } from "@/components/right-sidebar"
+import type { ChatModel, Reranker } from "@/components/right-sidebar"
 
 interface Message {
   id: string
@@ -151,7 +151,8 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
       })
 
       if (!response.ok) {
-        throw new Error("Failed to get response")
+        const errorData = await response.json().catch(() => ({ error: "Failed to get response" }))
+        throw new Error(errorData.error || "Failed to get response")
       }
 
       const reader = response.body?.getReader()
@@ -190,7 +191,7 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
                 ragContent += data.content
                 setComparisonMessages((prev) =>
                   prev.map((msg) =>
-                    msg.id === assistantMessageId ? { ...msg, ragContent, isThinking: false } : msg,
+                    msg.id === assistantMessageId ? { ...msg, ragContent, isThinking: true } : msg,
                   ),
                 )
               } else if (data.type === "rag_citation_marker") {
@@ -199,7 +200,7 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
                 gptContent += data.content
                 setComparisonMessages((prev) =>
                   prev.map((msg) =>
-                    msg.id === assistantMessageId ? { ...msg, gptContent, isThinking: false } : msg,
+                    msg.id === assistantMessageId ? { ...msg, gptContent, isThinking: true } : msg,
                   ),
                 )
               } else if (data.type === "citations") {
@@ -214,7 +215,7 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
                 setComparisonMessages((prev) =>
                   prev.map((msg) =>
                     msg.id === assistantMessageId
-                      ? { ...msg, ragContent: finalRagContent, gptContent, citations: finalCitations }
+                      ? { ...msg, ragContent: finalRagContent, gptContent, citations: finalCitations, isThinking: false }
                       : msg,
                   ),
                 )
@@ -239,11 +240,13 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
       }
     } catch (error) {
       console.error("Error in comparison mode:", error)
+      const errorText = error instanceof Error ? `Error: ${error.message}` : "Sorry, I encountered an error."
+
       const errorMessage: ComparisonMessage = {
         id: assistantMessageId,
         role: "assistant",
-        ragContent: "Sorry, I encountered an error with the RAG assistant.",
-        gptContent: "Sorry, I encountered an error with GPT-5.",
+        ragContent: errorText,
+        gptContent: errorText,
       }
       setComparisonMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? errorMessage : msg)))
     } finally {
@@ -309,7 +312,8 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
       })
 
       if (!response.ok) {
-        throw new Error("Failed to get response")
+        const errorData = await response.json().catch(() => ({ error: "Failed to get response" }))
+        throw new Error(errorData.error || "Failed to get response")
       }
 
       // Check content type to determine if streaming or regular JSON
@@ -432,11 +436,14 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
       }
     } catch (error) {
       console.error("[v0] Error sending message:", error)
+      const errorContent = error instanceof Error
+        ? `Error: ${error.message}`
+        : "Sorry, I encountered an error. Please make sure you have configured your Pinecone API key in the environment variables."
+
       const errorMessage: Message = {
         id: assistantMessageId,
         role: "assistant",
-        content:
-          "Sorry, I encountered an error. Please make sure you have configured your Pinecone API key in the environment variables.",
+        content: errorContent,
       }
       setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? errorMessage : msg)))
     } finally {

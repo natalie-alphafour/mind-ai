@@ -13,7 +13,10 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.PINECONE_API_KEY
     const assistantName = process.env.PINECONE_ASSISTANT_NAME
 
+    console.log("[v0] Environment check - API Key exists:", !!apiKey, "Assistant Name:", assistantName)
+
     if (!apiKey || !assistantName) {
+      console.error("[v0] Missing environment variables - API Key:", !!apiKey, "Assistant Name:", !!assistantName)
       return NextResponse.json(
         { error: "Missing PINECONE_API_KEY or PINECONE_ASSISTANT_NAME environment variables" },
         { status: 500 },
@@ -36,12 +39,12 @@ export async function POST(req: NextRequest) {
         })),
         temperature: temperature !== undefined ? temperature : undefined,
       }
-      
+
       // Add model if provided
       if (model) {
         chatOptions.model = model
       }
-      
+
       streamResponse = await assistant.chatStream(chatOptions)
     } catch (streamError) {
       console.log("[v0] chatStream not available, using regular chat:", streamError)
@@ -53,12 +56,12 @@ export async function POST(req: NextRequest) {
         })),
         temperature: temperature !== undefined ? temperature : undefined,
       }
-      
+
       // Add model if provided
       if (model) {
         chatOptions.model = model
       }
-      
+
       const response = await assistant.chat(chatOptions)
 
       // Process non-streaming response
@@ -228,8 +231,11 @@ export async function POST(req: NextRequest) {
     })
   } catch (error) {
     console.error("[v0] Chat API error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Failed to process chat request"
+    console.error("[v0] Error details:", errorMessage)
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to process chat request" },
+      { error: errorMessage },
       { status: 500 },
     )
   }

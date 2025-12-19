@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Settings, X, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type ChatModel = 
+export type ChatModel =
   | "gpt-4o"
   | "gpt-4.1"
   | "o4-mini"
@@ -17,15 +17,23 @@ export type ChatModel =
   | "claude-3-7-sonnet"
   | "gemini-2.5-pro"
 
+export type Reranker =
+  | "cohere-rerank-3.5"
+  | "bge-reranker-v2-m3"
+  | "pinecone-rerank-v0"
+
 interface RightSidebarProps {
   temperature: number
   systemPrompt: string
+  isLoadingInstructions: boolean
   comparisonMode: boolean
   model: ChatModel
+  reranker: Reranker
   onTemperatureChange: (value: number) => void
   onSystemPromptChange: (value: string) => void
   onComparisonModeChange: (value: boolean) => void
   onModelChange: (value: ChatModel) => void
+  onRerankerChange: (value: Reranker) => void
   onUpdateInstructions: () => void
   isOpen: boolean
   onClose: () => void
@@ -40,21 +48,36 @@ const CHAT_MODELS: Array<{ value: ChatModel; label: string; provider: string; ap
   { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "Google", apiValue: "gemini-2.5-pro" },
 ]
 
+const RERANKERS: Array<{ value: Reranker; label: string; apiValue: string }> = [
+  { value: "cohere-rerank-3.5", label: "Cohere Rerank 3.5", apiValue: "cohere-rerank-3.5" },
+  { value: "bge-reranker-v2-m3", label: "BGE Reranker v2 M3", apiValue: "bge-reranker-v2-m3" },
+  { value: "pinecone-rerank-v0", label: "Pinecone Rerank v0", apiValue: "pinecone-rerank-v0" },
+]
+
 // Helper function to get API value from model
 export function getModelApiValue(model: ChatModel): string {
   const modelConfig = CHAT_MODELS.find((m) => m.value === model)
   return modelConfig?.apiValue || model
 }
 
+// Helper function to get API value from reranker
+export function getRerankerApiValue(reranker: Reranker): string {
+  const rerankerConfig = RERANKERS.find((r) => r.value === reranker)
+  return rerankerConfig?.apiValue || reranker
+}
+
 export function RightSidebar({
   temperature,
   systemPrompt,
+  isLoadingInstructions,
   comparisonMode,
   model,
+  reranker,
   onTemperatureChange,
   onSystemPromptChange,
   onComparisonModeChange,
   onModelChange,
+  onRerankerChange,
   onUpdateInstructions,
   isOpen,
   onClose,
@@ -102,9 +125,9 @@ export function RightSidebar({
               </SelectTrigger>
               <SelectContent className="bg-sidebar border-sidebar-border">
                 {CHAT_MODELS.map((modelOption) => (
-                  <SelectItem 
-                    key={modelOption.value} 
-                    value={modelOption.value} 
+                  <SelectItem
+                    key={modelOption.value}
+                    value={modelOption.value}
                     className="text-sidebar-foreground data-[highlighted]:bg-sidebar-accent data-[highlighted]:text-sidebar-foreground [&_svg]:text-sidebar-foreground"
                   >
                     <div className="flex items-center justify-between w-full">
@@ -117,6 +140,41 @@ export function RightSidebar({
             </Select>
             <p className="text-xs text-muted-foreground">
               Select the AI model to use for conversations. This applies to both regular and comparison modes.
+            </p>
+          </div>
+
+          <div className="border-t border-sidebar-border" />
+
+          {/* Reranker Selection */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="reranker" className="text-sm font-medium text-white">
+                Reranker
+              </Label>
+              <Info className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <Select value={reranker} onValueChange={onRerankerChange}>
+              <SelectTrigger id="reranker" className="w-full text-white data-[placeholder]:text-white">
+                <SelectValue className="text-white">
+                  {RERANKERS.find((r) => r.value === reranker)?.label || reranker}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-sidebar border-sidebar-border">
+                {RERANKERS.map((rerankerOption) => (
+                  <SelectItem
+                    key={rerankerOption.value}
+                    value={rerankerOption.value}
+                    className="text-sidebar-foreground data-[highlighted]:bg-sidebar-accent data-[highlighted]:text-sidebar-foreground [&_svg]:text-sidebar-foreground"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-medium">{rerankerOption.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Select the reranking model to improve retrieval quality by reordering search results.
             </p>
           </div>
 
@@ -156,11 +214,12 @@ export function RightSidebar({
               id="systemPrompt"
               value={systemPrompt}
               onChange={(e) => onSystemPromptChange(e.target.value)}
-              placeholder="Enter custom instructions for the assistant..."
-              className="min-h-[200px] text-sm resize-none font-mono text-white"
+              placeholder={isLoadingInstructions ? "Loading instructions..." : "Enter custom instructions for the assistant..."}
+              className="min-h-[200px] max-h-[400px] text-sm resize-y font-mono text-white"
+              disabled={isLoadingInstructions}
             />
-            <Button onClick={onUpdateInstructions} className="w-full">
-              Update Instructions
+            <Button onClick={onUpdateInstructions} className="w-full" disabled={isLoadingInstructions}>
+              {isLoadingInstructions ? "Loading..." : "Update Instructions"}
             </Button>
             <p className="text-xs text-muted-foreground">
               These instructions will guide the assistant's behavior and responses for all future messages.

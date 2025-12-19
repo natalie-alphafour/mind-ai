@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/sidebar"
-import { RightSidebar, type ChatModel } from "@/components/right-sidebar"
+import { RightSidebar, type ChatModel, type Reranker } from "@/components/right-sidebar"
 import { ChatView } from "@/components/chat-view"
 import { Button } from "@/components/ui/button"
 import { Menu, Settings } from "lucide-react"
@@ -21,8 +21,10 @@ export default function Home() {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
   const [temperature, setTemperature] = useState(0.7)
   const [systemPrompt, setSystemPrompt] = useState("")
+  const [isLoadingInstructions, setIsLoadingInstructions] = useState(true)
   const [comparisonMode, setComparisonMode] = useState(false)
   const [model, setModel] = useState<ChatModel>("gpt-4o")
+  const [reranker, setReranker] = useState<Reranker>("pinecone-rerank-v0")
   const { toast } = useToast()
 
   useEffect(() => {
@@ -32,6 +34,24 @@ export default function Home() {
       const parsed = JSON.parse(stored)
       setConversations(parsed.map((c: any) => ({ ...c, createdAt: new Date(c.createdAt) })))
     }
+
+    // Fetch assistant instructions from Pinecone API
+    const fetchInstructions = async () => {
+      try {
+        setIsLoadingInstructions(true)
+        const response = await fetch("/api/assistant")
+        if (response.ok) {
+          const data = await response.json()
+          setSystemPrompt(data.instructions || "")
+        }
+      } catch (error) {
+        console.error("Failed to fetch assistant instructions:", error)
+      } finally {
+        setIsLoadingInstructions(false)
+      }
+    }
+
+    fetchInstructions()
   }, [])
 
   const createNewConversation = () => {
@@ -79,10 +99,17 @@ export default function Home() {
       const data = await response.json()
       toast({
         title: "Success",
-        description: systemPrompt.trim() === "" 
-          ? "Assistant instructions reset successfully" 
+        description: systemPrompt.trim() === ""
+          ? "Assistant instructions reset successfully"
           : "Assistant instructions updated successfully",
       })
+
+      // Refresh instructions from API to ensure sync
+      const fetchResponse = await fetch("/api/assistant")
+      if (fetchResponse.ok) {
+        const fetchData = await fetchResponse.json()
+        setSystemPrompt(fetchData.instructions || "")
+      }
     } catch (error) {
       console.error("Error updating instructions:", error)
       toast({
@@ -142,12 +169,15 @@ export default function Home() {
       <RightSidebar
         temperature={temperature}
         systemPrompt={systemPrompt}
+        isLoadingInstructions={isLoadingInstructions}
         comparisonMode={comparisonMode}
         model={model}
+        reranker={reranker}
         onTemperatureChange={setTemperature}
         onSystemPromptChange={setSystemPrompt}
         onComparisonModeChange={setComparisonMode}
         onModelChange={setModel}
+        onRerankerChange={setReranker}
         onUpdateInstructions={handleUpdateInstructions}
         isOpen={rightSidebarOpen}
         onClose={() => setRightSidebarOpen(false)}
