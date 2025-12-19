@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, Sparkles } from "lucide-react"
+import { Send, Sparkles, ArrowLeftRight } from "lucide-react"
 import { MessageBubble } from "@/components/message-bubble"
 import { ComparisonMessageBubble } from "@/components/comparison-message-bubble"
 import { EmptyState } from "@/components/empty-state"
@@ -44,9 +44,10 @@ interface ChatViewProps {
   temperature: number
   comparisonMode: boolean
   model: ChatModel
+  onToggleComparisonMode: (enabled: boolean) => void
 }
 
-export function ChatView({ conversationId, onUpdateConversationName, onNewConversation, temperature, comparisonMode, model }: ChatViewProps) {
+export function ChatView({ conversationId, onUpdateConversationName, onNewConversation, temperature, comparisonMode, model, onToggleComparisonMode }: ChatViewProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [comparisonMessages, setComparisonMessages] = useState<ComparisonMessage[]>([])
   const [input, setInput] = useState("")
@@ -463,15 +464,59 @@ export function ChatView({ conversationId, onUpdateConversationName, onNewConver
           <div className={comparisonMode ? "max-w-7xl mx-auto py-8 space-y-6" : "max-w-3xl mx-auto py-8 space-y-6"}>
           {comparisonMode ? (
             <>
-              {comparisonMessages.map((message) => (
-                <ComparisonMessageBubble key={message.id} message={message} />
-              ))}
+              {comparisonMessages.length > 0 ? (
+                <>
+                  {comparisonMessages.map((message) => (
+                    <ComparisonMessageBubble key={message.id} message={message} />
+                  ))}
+                </>
+              ) : messages.length > 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg font-semibold text-foreground">This conversation was in Normal Mode</h3>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      This conversation has messages from normal mode. Switch to normal mode to view them.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => onToggleComparisonMode(false)}
+                    variant="default"
+                    size="lg"
+                    className="gap-2"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                    Switch to Normal Mode
+                  </Button>
+                </div>
+              ) : null}
             </>
           ) : (
             <>
-              {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
-              ))}
+              {messages.length > 0 ? (
+                <>
+                  {messages.map((message) => (
+                    <MessageBubble key={message.id} message={message} />
+                  ))}
+                </>
+              ) : comparisonMessages.length > 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg font-semibold text-foreground">This conversation was in Comparison Mode</h3>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      This conversation has messages from comparison mode. Switch to comparison mode to view them.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => onToggleComparisonMode(true)}
+                    variant="default"
+                    size="lg"
+                    className="gap-2"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                    Switch to Comparison Mode
+                  </Button>
+                </div>
+              ) : null}
             </>
           )}
           {isLoading && (comparisonMode ? comparisonMessages[comparisonMessages.length - 1]?.role !== "assistant" : messages[messages.length - 1]?.role !== "assistant") && (

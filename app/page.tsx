@@ -162,6 +162,7 @@ export default function Home() {
           temperature={temperature}
           comparisonMode={comparisonMode}
           model={model}
+          onToggleComparisonMode={setComparisonMode}
         />
       </div>
 
