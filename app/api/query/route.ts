@@ -70,23 +70,48 @@ export async function POST(req: NextRequest) {
       try {
         const rawBody = await req.text()
         if (!rawBody || rawBody.trim().length === 0) {
-          return NextResponse.json(
-            {
-              error: "Request body is empty. Please provide a JSON body with at least a 'message' field.",
-              answer: "",
-              citations: []
-            } as QueryResponse,
-            {
-              status: 400,
-              headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type, Authorization",
-              },
-            }
-          )
+          // If body is empty, try to get parameters from query string (Bubble.io fallback)
+          const { searchParams } = new URL(req.url)
+          const messageFromQuery = searchParams.get("message")
+          
+          if (messageFromQuery) {
+            console.log("[API] Body is empty, using query parameters instead")
+            const temperatureStr = searchParams.get("temperature")
+            const model = searchParams.get("model")
+            const systemPrompt = searchParams.get("systemPrompt")
+            const conversationHistoryStr = searchParams.get("conversationHistory")
+            
+            body = {
+              message: messageFromQuery,
+              temperature: temperatureStr ? parseFloat(temperatureStr) : undefined,
+              model: model || undefined,
+              systemPrompt: systemPrompt || undefined,
+              conversationHistory: conversationHistoryStr ? JSON.parse(conversationHistoryStr) : undefined,
+            } as QueryRequest
+          } else {
+            // Log all headers for debugging
+            console.log("[API] Request headers:", Object.fromEntries(req.headers.entries()))
+            console.log("[API] Query params:", Object.fromEntries(searchParams.entries()))
+            
+            return NextResponse.json(
+              {
+                error: "Request body is empty and no 'message' parameter found in query string. Please provide a JSON body with at least a 'message' field, or send 'message' as a query parameter.",
+                answer: "",
+                citations: []
+              } as QueryResponse,
+              {
+                status: 400,
+                headers: {
+                  "Access-Control-Allow-Origin": "*",
+                  "Access-Control-Allow-Methods": "POST, OPTIONS",
+                  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                },
+              }
+            )
+          }
+        } else {
+          body = JSON.parse(rawBody) as QueryRequest
         }
-        body = JSON.parse(rawBody) as QueryRequest
       } catch (parseError) {
         console.error("[API] JSON parse error:", parseError)
         const errorMsg = parseError instanceof Error ? parseError.message : "Unknown error"

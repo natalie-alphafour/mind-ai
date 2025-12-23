@@ -224,14 +224,19 @@ curl -X POST http://localhost:3000/api/query \
 3. **Add API Call**
    - Name: `query_chatbot`
    - Use as: Action
-   - Data type: JSON
+   - Data type: **JSON** (This is critical - must be JSON, not form-encoded)
    - Method: POST
    - URL: `https://your-domain.com/api/query`
 
-4. **Add Parameters**
-   - `message` (text, required)
-   - `temperature` (number, optional, default: 0.7)
-   - `model` (text, optional, default: "gpt-4o")
+4. **Add Parameters in the "Body" Section**
+   - **Important**: Make sure parameters are added to the **"Body"** section, not as query parameters
+   - Click on "Body" tab in the API call configuration
+   - Add these parameters:
+     - `message` (text, required) - **This must be in the Body, not query params**
+     - `temperature` (number, optional, default: 0.7)
+     - `model` (text, optional, default: "gpt-4o")
+     - `systemPrompt` (text, optional)
+     - `conversationHistory` (text, optional - must be valid JSON array string if provided)
 
 5. **Initialize Call**
    - Enter test values and click "Initialize call"
@@ -252,26 +257,37 @@ curl -X POST http://localhost:3000/api/query \
 
 ### Troubleshooting Bubble.io Integration
 
-If you encounter errors like "Unexpected end of JSON input" or status code 500:
+If you encounter errors like "Unexpected end of JSON input", "Request body is empty", or status code 400/500:
 
-1. **Check Data Type Setting**
+1. **Check Data Type Setting** ⚠️ **CRITICAL**
    - In your API call configuration, ensure **"Data type" is set to "JSON"** (not "form-encoded" or "text")
    - This ensures Bubble sends the request with `Content-Type: application/json`
 
-2. **Verify Parameters are Set**
-   - Make sure the `message` parameter is not empty
-   - Check that all parameters are properly mapped in your workflow
+2. **Verify Parameters are in the Body Section** ⚠️ **CRITICAL**
+   - Parameters MUST be added in the **"Body"** tab/section of the API call, NOT as query parameters
+   - In Bubble's API Connector:
+     - Click on the API call you created
+     - Go to the **"Body"** tab (not "Query parameters" or "Headers")
+     - Add your parameters there: `message`, `temperature`, `model`, etc.
+   - If parameters are in the wrong section, Bubble will send an empty body
+
+3. **Verify Parameters are Set in Workflow**
+   - Make sure the `message` parameter is not empty when calling the API
+   - Check that all parameters are properly mapped in your workflow action
    - Optional parameters can be left empty, but `message` is required
 
-3. **Check Request Body**
-   - In Bubble's API Connector, after initializing the call, verify the request body preview shows valid JSON
+4. **Check Request Body Preview**
+   - In Bubble's API Connector, after initializing the call, click "Initialize call" with test values
+   - Verify the request body preview shows valid JSON
    - It should look like: `{"message": "your message", "temperature": 0.7, ...}`
+   - If the preview is empty or shows query parameters, the configuration is wrong
 
-4. **Headers Configuration**
+5. **Headers Configuration**
    - Bubble should automatically set `Content-Type: application/json` when Data type is JSON
+   - You typically don't need to manually add headers
    - If you're manually adding headers, ensure `Content-Type` is set to `application/json`
 
-5. **Test with Minimal Request**
+6. **Test with Minimal Request**
    - Try sending just the required `message` field first:
      ```json
      {
@@ -280,9 +296,16 @@ If you encounter errors like "Unexpected end of JSON input" or status code 500:
      ```
    - Once that works, add optional parameters one by one
 
-6. **Check Server Logs**
+7. **Check Server Logs**
    - The API now provides better error messages that will help identify the issue
    - Check your server console/logs for detailed error information
+   - Look for lines starting with `[API]` to see what the server received
+
+8. **Common Bubble.io Configuration Mistakes**
+   - ❌ Adding parameters as "Query parameters" instead of "Body"
+   - ❌ Setting Data type to "form-encoded" instead of "JSON"
+   - ❌ Not initializing the call with test values (Bubble needs this to detect the structure)
+   - ❌ Forgetting to map parameters in the workflow action
 
 ## Rate Limiting
 
