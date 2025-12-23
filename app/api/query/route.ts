@@ -25,7 +25,88 @@ interface QueryResponse {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json() as QueryRequest
+    // Check content type and handle different request formats
+    const contentType = req.headers.get("content-type") || ""
+    console.log("[API] Received request with Content-Type:", contentType)
+    let body: QueryRequest
+
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      // Handle form-encoded data (some Bubble.io configurations might send this)
+      try {
+        const formData = await req.formData()
+        const message = formData.get("message")?.toString()
+        const temperatureStr = formData.get("temperature")?.toString()
+        const model = formData.get("model")?.toString()
+        const systemPrompt = formData.get("systemPrompt")?.toString()
+        const conversationHistoryStr = formData.get("conversationHistory")?.toString()
+
+        body = {
+          message: message || "",
+          temperature: temperatureStr ? parseFloat(temperatureStr) : undefined,
+          model: model || undefined,
+          systemPrompt: systemPrompt || undefined,
+          conversationHistory: conversationHistoryStr ? JSON.parse(conversationHistoryStr) : undefined,
+        } as QueryRequest
+      } catch (parseError) {
+        console.error("[API] Form data parse error:", parseError)
+        return NextResponse.json(
+          {
+            error: `Invalid form data: ${parseError instanceof Error ? parseError.message : "Unknown error"}`,
+            answer: "",
+            citations: []
+          } as QueryResponse,
+          {
+            status: 400,
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "POST, OPTIONS",
+              "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            },
+          }
+        )
+      }
+    } else {
+      // Try to parse as JSON (default and fallback)
+      try {
+        const rawBody = await req.text()
+        if (!rawBody || rawBody.trim().length === 0) {
+          return NextResponse.json(
+            {
+              error: "Request body is empty. Please provide a JSON body with at least a 'message' field.",
+              answer: "",
+              citations: []
+            } as QueryResponse,
+            {
+              status: 400,
+              headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+              },
+            }
+          )
+        }
+        body = JSON.parse(rawBody) as QueryRequest
+      } catch (parseError) {
+        console.error("[API] JSON parse error:", parseError)
+        const errorMsg = parseError instanceof Error ? parseError.message : "Unknown error"
+        return NextResponse.json(
+          {
+            error: `Invalid JSON in request body: ${errorMsg}. Please ensure you're sending valid JSON with Content-Type: application/json header.`,
+            answer: "",
+            citations: []
+          } as QueryResponse,
+          {
+            status: 400,
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "POST, OPTIONS",
+              "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            },
+          }
+        )
+      }
+    }
 
     // Extract and normalize parameters with defaults
     const message = body.message?.trim()
@@ -41,8 +122,19 @@ export async function POST(req: NextRequest) {
     // Validate required fields
     if (!message || message.length === 0) {
       return NextResponse.json(
-        { error: "Message is required and must be a non-empty string" },
-        { status: 400 }
+        {
+          error: "Message is required and must be a non-empty string",
+          answer: "",
+          citations: []
+        } as QueryResponse,
+        {
+          status: 400,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        }
       )
     }
 
@@ -53,8 +145,19 @@ export async function POST(req: NextRequest) {
     if (!apiKey || !assistantName) {
       console.error("[API] Missing environment variables")
       return NextResponse.json(
-        { error: "Server configuration error: Missing PINECONE_API_KEY or PINECONE_ASSISTANT_NAME" },
-        { status: 500 }
+        {
+          error: "Server configuration error: Missing PINECONE_API_KEY or PINECONE_ASSISTANT_NAME",
+          answer: "",
+          citations: []
+        } as QueryResponse,
+        {
+          status: 500,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        }
       )
     }
 
@@ -151,7 +254,14 @@ export async function POST(req: NextRequest) {
 
     console.log("[API] Query processed successfully, citations:", processedCitations.length)
 
-    return NextResponse.json(responseData, { status: 200 })
+    return NextResponse.json(responseData, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    })
   } catch (error) {
     console.error("[API] Query error:", error)
     const errorMessage = error instanceof Error ? error.message : "Failed to process query"
@@ -162,7 +272,14 @@ export async function POST(req: NextRequest) {
         answer: "",
         citations: []
       } as QueryResponse,
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      }
     )
   }
 }

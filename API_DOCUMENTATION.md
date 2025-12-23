@@ -250,6 +250,40 @@ curl -X POST http://localhost:3000/api/query \
       Data source = Result of Step 1's citations
    ```
 
+### Troubleshooting Bubble.io Integration
+
+If you encounter errors like "Unexpected end of JSON input" or status code 500:
+
+1. **Check Data Type Setting**
+   - In your API call configuration, ensure **"Data type" is set to "JSON"** (not "form-encoded" or "text")
+   - This ensures Bubble sends the request with `Content-Type: application/json`
+
+2. **Verify Parameters are Set**
+   - Make sure the `message` parameter is not empty
+   - Check that all parameters are properly mapped in your workflow
+   - Optional parameters can be left empty, but `message` is required
+
+3. **Check Request Body**
+   - In Bubble's API Connector, after initializing the call, verify the request body preview shows valid JSON
+   - It should look like: `{"message": "your message", "temperature": 0.7, ...}`
+
+4. **Headers Configuration**
+   - Bubble should automatically set `Content-Type: application/json` when Data type is JSON
+   - If you're manually adding headers, ensure `Content-Type` is set to `application/json`
+
+5. **Test with Minimal Request**
+   - Try sending just the required `message` field first:
+     ```json
+     {
+       "message": "Hello"
+     }
+     ```
+   - Once that works, add optional parameters one by one
+
+6. **Check Server Logs**
+   - The API now provides better error messages that will help identify the issue
+   - Check your server console/logs for detailed error information
+
 ## Rate Limiting
 
 Currently, there are no rate limits implemented. For production use, consider implementing rate limiting based on your needs.
