@@ -261,6 +261,8 @@ curl -X POST http://localhost:3000/api/query \
 
 If you encounter errors like "Request body is empty" or status code 400:
 
+**First, check the error response!** The API now returns diagnostic information that will help you identify the issue. Look for the `diagnostic` field in the error response.
+
 1. **Check Data Type Setting** ⚠️ **CRITICAL**
    - In your API call configuration, ensure **"Data type" is set to "JSON"** (not "form-encoded" or "text")
    - This ensures Bubble sends the request with `Content-Type: application/json`
@@ -273,39 +275,41 @@ If you encounter errors like "Request body is empty" or status code 400:
      - Add your parameters there: `message`, `temperature`, `model`, etc.
    - **If parameters are in "Query parameters" instead of "Body", the body will be empty!**
 
-3. **Verify Parameters are Set in Workflow**
-   - Make sure the `message` parameter is not empty when calling the API
-   - Check that all parameters are properly mapped in your workflow action
-   - Optional parameters can be left empty, but `message` is required
+3. **Verify Parameters are Mapped in Your Workflow** ⚠️ **VERY COMMON**
+   - When you use the API call in a workflow, you MUST map the parameters
+   - **Don't leave parameters empty** - even if they're optional, make sure `message` has a value
+   - Common mistake: Forgetting to map `message` = `Input's value` in the workflow action
+   - Try using a static value first (like `"test"`) to verify the connection works
 
 4. **Check Request Body Preview**
    - In Bubble's API Connector, after initializing the call, check the request preview
    - The **Body** section should show JSON like: `{"message": "your message", "temperature": 0.7, ...}`
    - If the Body is empty but you see parameters in "Query parameters", that's the problem!
 
-5. **Headers Configuration**
-   - Bubble should automatically set `Content-Type: application/json` when Data type is JSON
-   - You typically don't need to manually add headers
+5. **Re-initialize the Call**
+   - Sometimes Bubble needs the call to be re-initialized after configuration changes
+   - Go back to your API call, enter test values in the Body section
+   - Click "Initialize call" again
+   - This ensures Bubble has the correct structure
 
-6. **Test with Minimal Request**
-   - Try sending just the required `message` field first:
-     ```json
-     {
-       "message": "Hello"
-     }
-     ```
-   - Once that works, add optional parameters one by one
+6. **Test with Static Values First**
+   - In your workflow, try using static text for the `message` parameter:
+     - `message` = `"Hello test"` (use quotes, it's text)
+   - If this works, the issue is with your dynamic values (input fields, etc.)
+   - If this doesn't work, the issue is with the API call configuration
 
 7. **Check Server Logs**
    - The API now logs detailed information about what it receives
    - Check your server console/logs for lines starting with `[API]`
-   - This will show the Content-Type, body length, and query parameters received
+   - This will show the Content-Type, body length, query parameters, and headers received
+   - The diagnostic info in the error response also shows what was received
 
 8. **Common Bubble.io Mistakes**
    - ❌ Adding parameters as "Query parameters" instead of "Body"
    - ❌ Setting Data type to "form-encoded" instead of "JSON"
+   - ❌ Not mapping parameters in the workflow action (leaving them empty)
    - ❌ Not initializing the call with test values
-   - ❌ Forgetting to map parameters in the workflow action
+   - ❌ Using the wrong data type for parameters (e.g., using "number" for text)
 
 ## Rate Limiting
 

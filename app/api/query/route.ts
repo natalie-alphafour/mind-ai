@@ -78,8 +78,10 @@ export async function POST(req: NextRequest) {
           const messageFromQuery = searchParams.get("message")
           
           console.log("[API] Body is empty, checking query parameters...")
-          console.log("[API] Query params:", Object.fromEntries(searchParams.entries()))
-          console.log("[API] All headers:", Object.fromEntries(req.headers.entries()))
+          const queryParams = Object.fromEntries(searchParams.entries())
+          const allHeaders = Object.fromEntries(req.headers.entries())
+          console.log("[API] Query params:", queryParams)
+          console.log("[API] All headers:", allHeaders)
           
           if (messageFromQuery) {
             console.log("[API] Found message in query parameters, using that")
@@ -96,12 +98,29 @@ export async function POST(req: NextRequest) {
               conversationHistory: conversationHistoryStr ? JSON.parse(conversationHistoryStr) : undefined,
             } as QueryRequest
           } else {
+            // Return diagnostic information to help debug
             return NextResponse.json(
               {
-                error: "Request body is empty and no 'message' parameter found in query string. Please ensure Bubble.io is configured to send parameters in the request body (Body tab, not Query parameters). Check that 'Data type' is set to 'JSON' and parameters are added in the 'Body' section.",
+                error: "Request body is empty and no 'message' parameter found in query string.",
+                diagnostic: {
+                  contentType: contentType || "(not set)",
+                  bodyLength: 0,
+                  queryParams: queryParams,
+                  receivedHeaders: {
+                    "content-type": allHeaders["content-type"] || "(not set)",
+                    "user-agent": allHeaders["user-agent"] || "(not set)",
+                  },
+                  troubleshooting: [
+                    "1. In Bubble.io API Connector, ensure 'Data type' is set to 'JSON'",
+                    "2. Add parameters in the 'Body' tab (not 'Query parameters')",
+                    "3. Make sure 'message' parameter is mapped in your workflow",
+                    "4. Check that the workflow action has values for the parameters",
+                    "5. Try initializing the API call again with test values"
+                  ]
+                },
                 answer: "",
                 citations: []
-              } as QueryResponse,
+              } as any,
               {
                 status: 400,
                 headers: {
@@ -113,7 +132,68 @@ export async function POST(req: NextRequest) {
             )
           }
         } else {
-          body = JSON.parse(rawBody) as QueryRequest
+          // Try to parse JSON, but handle empty JSON object case
+          try {
+            const parsed = JSON.parse(rawBody)
+            if (typeof parsed === "object" && parsed !== null && Object.keys(parsed).length === 0) {
+              console.log("[API] Received empty JSON object {}")
+              return NextResponse.json(
+                {
+                  error: "Received empty JSON object. Please ensure parameters are properly mapped in your Bubble.io workflow.",
+                  diagnostic: {
+                    contentType: contentType,
+                    bodyReceived: rawBody,
+                    troubleshooting: [
+                      "1. Check that your workflow action has the 'message' parameter mapped",
+                      "2. Verify the parameter values are not empty in your workflow",
+                      "3. Try using static text like 'test' for the message parameter to verify the connection"
+                    ]
+                  },
+                  answer: "",
+                  citations: []
+                } as any,
+                {
+                  status: 400,
+                  headers: {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                  },
+                }
+              )
+            }
+            body = parsed as QueryRequest
+          } catch (parseError) {
+            // If it's not valid JSON, check if it's just whitespace or empty string
+            if (rawBody.trim().length === 0) {
+              const { searchParams } = new URL(req.url)
+              return NextResponse.json(
+                {
+                  error: "Request body is empty (whitespace only).",
+                  diagnostic: {
+                    contentType: contentType,
+                    queryParams: Object.fromEntries(searchParams.entries()),
+                    troubleshooting: [
+                      "1. Ensure parameters are in the 'Body' section of your API call",
+                      "2. Check that 'Data type' is set to 'JSON'",
+                      "3. Verify parameters are mapped in your workflow action"
+                    ]
+                  },
+                  answer: "",
+                  citations: []
+                } as any,
+                {
+                  status: 400,
+                  headers: {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                  },
+                }
+              )
+            }
+            throw parseError // Re-throw to be caught by outer catch
+          }
         }
       } catch (parseError) {
         console.error("[API] JSON parse error:", parseError)
