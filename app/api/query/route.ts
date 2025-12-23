@@ -69,13 +69,20 @@ export async function POST(req: NextRequest) {
       // Try to parse as JSON (default and fallback)
       try {
         const rawBody = await req.text()
+        console.log("[API] Raw body length:", rawBody?.length || 0)
+        console.log("[API] Raw body preview:", rawBody?.substring(0, 200) || "(empty)")
+        
         if (!rawBody || rawBody.trim().length === 0) {
           // If body is empty, try to get parameters from query string (Bubble.io fallback)
           const { searchParams } = new URL(req.url)
           const messageFromQuery = searchParams.get("message")
           
+          console.log("[API] Body is empty, checking query parameters...")
+          console.log("[API] Query params:", Object.fromEntries(searchParams.entries()))
+          console.log("[API] All headers:", Object.fromEntries(req.headers.entries()))
+          
           if (messageFromQuery) {
-            console.log("[API] Body is empty, using query parameters instead")
+            console.log("[API] Found message in query parameters, using that")
             const temperatureStr = searchParams.get("temperature")
             const model = searchParams.get("model")
             const systemPrompt = searchParams.get("systemPrompt")
@@ -89,13 +96,9 @@ export async function POST(req: NextRequest) {
               conversationHistory: conversationHistoryStr ? JSON.parse(conversationHistoryStr) : undefined,
             } as QueryRequest
           } else {
-            // Log all headers for debugging
-            console.log("[API] Request headers:", Object.fromEntries(req.headers.entries()))
-            console.log("[API] Query params:", Object.fromEntries(searchParams.entries()))
-            
             return NextResponse.json(
               {
-                error: "Request body is empty and no 'message' parameter found in query string. Please provide a JSON body with at least a 'message' field, or send 'message' as a query parameter.",
+                error: "Request body is empty and no 'message' parameter found in query string. Please ensure Bubble.io is configured to send parameters in the request body (Body tab, not Query parameters). Check that 'Data type' is set to 'JSON' and parameters are added in the 'Body' section.",
                 answer: "",
                 citations: []
               } as QueryResponse,
