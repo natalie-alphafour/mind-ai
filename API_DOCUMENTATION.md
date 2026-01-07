@@ -263,6 +263,34 @@ If you encounter errors like "Request body is empty" or status code 400:
 
 **First, check the error response!** The API now returns diagnostic information that will help you identify the issue. Look for the `diagnostic` field in the error response.
 
+#### Common Issue: Body Not Sending During "Initialize Call"
+
+If you see `contentType: "(not set)"` and `bodyLength: 0` in the diagnostic, Bubble.io isn't sending the body during initialization. Here's how to fix it:
+
+**Option 1: Use Parameters Section (Recommended)**
+1. In your API call configuration, **delete the JSON from "Body (JSON object)" section**
+2. Go to the **"Parameters"** section (above "Body (JSON object)")
+3. Click **"Add parameter"**
+4. Add:
+   - Parameter name: `message` | Type: `text` | Required: ✓
+   - Parameter name: `temperature` | Type: `number` | Required: (unchecked)
+   - Parameter name: `model` | Type: `text` | Required: (unchecked)
+5. Enter test values in the Parameters section
+6. Click **"Initialize call"**
+
+**Option 2: Fix Body (JSON object) Section**
+1. **Remove the manual Content-Type header** (Bubble should set it automatically when Data type is JSON)
+2. In "Body (JSON object)", use dynamic syntax: `{"message": <Input's value>}`
+3. For testing during initialization, you can use static text: `{"message": "test"}`
+4. Make sure "Body type" dropdown is set to **"JSON"** (not "Custom")
+5. Click **"Initialize call"** again
+
+**Option 3: Remove and Recreate**
+Sometimes Bubble's API Connector gets into a bad state. Try:
+1. Delete the API call
+2. Create a new one from scratch
+3. Use **Option 1 (Parameters section)** - it's more reliable
+
 1. **Check Data Type Setting** ⚠️ **CRITICAL**
    - In your API call configuration, ensure **"Data type" is set to "JSON"** (not "form-encoded" or "text")
    - This ensures Bubble sends the request with `Content-Type: application/json`

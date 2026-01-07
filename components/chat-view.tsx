@@ -35,6 +35,8 @@ interface Citation {
   file_id: string
   pages?: number[]
   number: number
+  title?: string
+  post_unique_id?: string
 }
 
 interface ChatViewProps {

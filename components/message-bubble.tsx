@@ -10,6 +10,8 @@ interface Citation {
   file_id: string
   pages?: number[]
   number: number
+  title?: string
+  post_unique_id?: string
 }
 
 interface Message {
@@ -141,17 +143,29 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                       : `pp. ${citation.pages.join(", ")}`
                     : null
 
+                const handleClick = () => {
+                  console.log('Citation clicked:', citation)
+                  if (citation.post_unique_id) {
+                    const url = `https://app.nothingheldback.com/library_calls/${citation.post_unique_id}`
+                    console.log('Opening URL:', url)
+                    window.open(url, '_blank')
+                  } else {
+                    console.warn('No post_unique_id found for citation:', citation)
+                  }
+                }
+
                 return (
                   <Badge
                     key={idx}
                     variant="secondary"
                     className="gap-1.5 cursor-pointer hover:bg-secondary/80 transition-all duration-200 hover:scale-105 animate-in fade-in zoom-in-95"
                     style={{ animationDelay: `${idx * 50}ms` }}
+                    onClick={handleClick}
                   >
                     <span className="text-xs font-semibold">[{citation.number}]</span>
                     <ExternalLink className="h-3 w-3" />
-                    <span className="text-xs">{citation.file_name}</span>
-                    {pageInfo && <span className="text-xs text-muted-foreground">({pageInfo})</span>}
+                    <span className="text-xs">{citation.title || citation.file_name}</span>
+                    {/* {pageInfo && <span className="text-xs text-muted-foreground">({pageInfo})</span>} */}
                   </Badge>
                 )
               })}

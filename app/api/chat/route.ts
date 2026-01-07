@@ -72,6 +72,8 @@ export async function POST(req: NextRequest) {
         file_id: string
         pages?: number[]
         number: number
+        title?: string
+        post_unique_id?: string
       }> = []
 
       if (response.citations && Array.isArray(response.citations)) {
@@ -83,12 +85,25 @@ export async function POST(req: NextRequest) {
           if (citation.references && Array.isArray(citation.references)) {
             citation.references.forEach((ref: any) => {
               if (ref.file) {
+                console.log("[v0] Non-streaming Full citation:", JSON.stringify(citation, null, 2))
+                console.log("[v0] Non-streaming Full ref:", JSON.stringify(ref, null, 2))
+
+                // Try different ways to access metadata
+                const metadata = ref.file.metadata || ref.metadata || ref.file || {}
+                const title = metadata.title || ref.file.name || "Unknown"
+                const postUniqueId = metadata.post_unique_id || metadata.postUniqueId || ""
+
+                console.log("[v0] Non-streaming Extracted title:", title)
+                console.log("[v0] Non-streaming Extracted post_unique_id:", postUniqueId)
+
                 processedCitations.push({
                   file_name: ref.file.name || "Unknown",
                   score: 1.0,
                   file_id: ref.file.id || "",
                   pages: ref.pages || [],
                   number: citationCounter,
+                  title: title,
+                  post_unique_id: postUniqueId,
                 })
               }
             })
@@ -158,6 +173,8 @@ export async function POST(req: NextRequest) {
             file_id: string
             pages?: number[]
             number: number
+            title?: string
+            post_unique_id?: string
           }> = []
 
           if (citations && Array.isArray(citations)) {
@@ -169,12 +186,28 @@ export async function POST(req: NextRequest) {
               if (citation.references && Array.isArray(citation.references)) {
                 citation.references.forEach((ref: any) => {
                   if (ref.file) {
+                    console.log("[v0] Full citation object:", JSON.stringify(citation, null, 2))
+                    console.log("[v0] Full ref object:", JSON.stringify(ref, null, 2))
+                    console.log("[v0] ref.file:", ref.file)
+                    console.log("[v0] ref.metadata:", ref.metadata)
+                    console.log("[v0] ref.file.metadata:", ref.file.metadata)
+
+                    // Try different ways to access metadata
+                    const metadata = ref.file.metadata || ref.metadata || ref.file || {}
+                    const title = metadata.title || ref.file.name || "Unknown"
+                    const postUniqueId = metadata.post_unique_id || metadata.postUniqueId || ""
+
+                    console.log("[v0] Extracted title:", title)
+                    console.log("[v0] Extracted post_unique_id:", postUniqueId)
+
                     processedCitations.push({
                       file_name: ref.file.name || "Unknown",
                       score: 1.0,
                       file_id: ref.file.id || "",
                       pages: ref.pages || [],
                       number: citationCounter,
+                      title: title,
+                      post_unique_id: postUniqueId,
                     })
                   }
                 })

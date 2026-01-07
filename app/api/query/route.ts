@@ -15,6 +15,8 @@ interface Citation {
   file_id: string
   pages?: number[]
   number: number
+  title?: string
+  post_unique_id?: string
 }
 
 interface QueryResponse {
@@ -27,7 +29,14 @@ export async function POST(req: NextRequest) {
   try {
     // Check content type and handle different request formats
     const contentType = req.headers.get("content-type") || ""
-    console.log("[API] Received request with Content-Type:", contentType)
+    console.log("[API] Received request with Content-Type:", contentType || "(not set)")
+    console.log("[API] Request method:", req.method)
+    console.log("[API] Request URL:", req.url)
+    
+    // Log all headers for debugging
+    const allHeaders = Object.fromEntries(req.headers.entries())
+    console.log("[API] All request headers:", allHeaders)
+    
     let body: QueryRequest
 
     if (contentType.includes("application/x-www-form-urlencoded")) {
@@ -111,11 +120,17 @@ export async function POST(req: NextRequest) {
                     "user-agent": allHeaders["user-agent"] || "(not set)",
                   },
                   troubleshooting: [
-                    "1. In Bubble.io API Connector, ensure 'Data type' is set to 'JSON'",
-                    "2. Add parameters in the 'Body' tab (not 'Query parameters')",
-                    "3. Make sure 'message' parameter is mapped in your workflow",
-                    "4. Check that the workflow action has values for the parameters",
-                    "5. Try initializing the API call again with test values"
+                    "1. In Bubble.io, you have 'Body (JSON object)' section - this is correct!",
+                    "2. However, the body isn't being sent. Try this:",
+                    "   a. Remove the Content-Type header (Bubble should set it automatically)",
+                    "   b. Make sure 'Body type' dropdown is set to 'JSON' (not 'Custom')",
+                    "   c. In the 'Body (JSON object)' section, use dynamic values: {\"message\": <Input's value>}",
+                    "   d. Click 'Initialize call' again",
+                    "3. Alternative: Use 'Parameters' section instead of 'Body (JSON object)':",
+                    "   - Delete the JSON from 'Body (JSON object)' section",
+                    "   - Go to 'Parameters' section and add 'message' as a parameter",
+                    "   - Set it as type 'text' and required",
+                    "4. If still not working, try removing and recreating the API call"
                   ]
                 },
                 answer: "",
@@ -328,12 +343,25 @@ export async function POST(req: NextRequest) {
         if (citation.references && Array.isArray(citation.references)) {
           citation.references.forEach((ref: any) => {
             if (ref.file) {
+              console.log("[API] Query Full citation:", JSON.stringify(citation, null, 2))
+              console.log("[API] Query Full ref:", JSON.stringify(ref, null, 2))
+
+              // Try different ways to access metadata
+              const metadata = ref.file.metadata || ref.metadata || ref.file || {}
+              const title = metadata.title || ref.file.name || "Unknown"
+              const postUniqueId = metadata.post_unique_id || metadata.postUniqueId || ""
+
+              console.log("[API] Query Extracted title:", title)
+              console.log("[API] Query Extracted post_unique_id:", postUniqueId)
+
               processedCitations.push({
                 file_name: ref.file.name || "Unknown",
                 score: 1.0,
                 file_id: ref.file.id || "",
                 pages: ref.pages || [],
                 number: citationCounter,
+                title: title,
+                post_unique_id: postUniqueId,
               })
             }
           })

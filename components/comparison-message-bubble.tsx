@@ -10,6 +10,8 @@ interface Citation {
   file_id: string
   pages?: number[]
   number: number
+  title?: string
+  post_unique_id?: string
 }
 
 interface ComparisonMessage {
@@ -124,20 +126,39 @@ export function ComparisonMessageBubble({ message }: ComparisonMessageBubbleProp
               <div className="mt-4 pt-4 border-t border-border space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Sources:</p>
                 <div className="space-y-1.5">
-                  {message.citations.map((citation, idx) => (
-                    <div key={`citation-${citation.number}-${idx}`} className="flex items-start gap-2 text-xs">
-                      <Badge variant="outline" className="text-xs">
-                        {citation.number}
-                      </Badge>
-                      <div className="flex-1">
-                        <p className="font-medium text-foreground">{citation.file_name}</p>
-                        {citation.pages && citation.pages.length > 0 && (
-                          <p className="text-muted-foreground">Pages: {citation.pages.join(", ")}</p>
-                        )}
-                        <p className="text-muted-foreground">Relevance: {(citation.score * 100).toFixed(1)}%</p>
+                  {message.citations.map((citation, idx) => {
+                    const handleClick = () => {
+                      console.log('Citation clicked:', citation)
+                      if (citation.post_unique_id) {
+                        const url = `https://app.nothingheldback.com/library_calls/${citation.post_unique_id}`
+                        console.log('Opening URL:', url)
+                        window.open(url, '_blank')
+                      } else {
+                        console.warn('No post_unique_id found for citation:', citation)
+                      }
+                    }
+
+                    return (
+                      <div
+                        key={`citation-${citation.number}-${idx}`}
+                        className="flex items-start gap-2 text-xs cursor-pointer hover:bg-secondary/50 p-2 rounded transition-colors"
+                        onClick={handleClick}
+                      >
+                        <Badge variant="outline" className="text-xs">
+                          {citation.number}
+                        </Badge>
+                        <div className="flex-1">
+                          <p className="font-medium text-foreground hover:text-primary transition-colors">
+                            {citation.title || citation.file_name}
+                          </p>
+                          {citation.pages && citation.pages.length > 0 && (
+                            <p className="text-muted-foreground">Pages: {citation.pages.join(", ")}</p>
+                          )}
+                          <p className="text-muted-foreground">Relevance: {(citation.score * 100).toFixed(1)}%</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
